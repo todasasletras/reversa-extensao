@@ -1,0 +1,52 @@
+{
+  "manifest_version": 2,
+  "name": "Reversa — Configurações padrão a seu favor",
+  "version": "0.1.0",
+  "description": "Extensão que reverte configurações padrão viciantes do Instagram: rolagem infinita, feed algorítmico e autoplay/notificações. Desenvolvida pela Todas Labs.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.instagram.com/*"],
+      "js": [
+        "content-scripts/config.js",
+        "content-scripts/scroll-limiter.js",
+        "content-scripts/chrono-feed.js",
+        "content-scripts/follow-only-filter.js",
+        "content-scripts/settings-reset.js",
+        "content-scripts/index.js"
+      ],
+      "css": ["content-scripts/overlay.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    },
+    "default_title": "Reversa"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "reversa@todaslabs.org",
+      "strict_min_version": "68.0"
+    },
+    "gecko_android": {
+      "strict_min_version": "113.0"
+    }
+  }
+}
