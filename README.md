@@ -95,5 +95,4 @@ localizado — não é preciso caçar seletores espalhados pelo código.
 
 ## Licença
 
-Sugestão: GPL-3.0, mesma licença já usada em outros projetos de código
-aberto da Todas Labs (ex. extensão de detecção de dark patterns).
+GPL-3.0
