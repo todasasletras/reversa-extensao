@@ -5,7 +5,7 @@
 // feitas no popup em tempo real (browser.storage.onChanged).
 
 /**
- * Liga ou desliga cada um dos 4 módulos com base no objeto de
+ * Liga ou desliga cada um dos 5 módulos com base no objeto de
  * preferências. Único lugar do projeto que decide o estado de cada
  * módulo — os módulos em si nunca se autoativam. Módulos são
  * completamente independentes entre si: qualquer combinação de
@@ -13,16 +13,19 @@
  * @param {Object} prefs - Preferências lidas do storage (ver
  *   background.js para o formato de DEFAULT_PREFS).
  * @param {boolean} prefs.scrollLimiter - Liga/desliga o módulo 1.
- * @param {number} [prefs.scrollLimiterBatchSize] - Repassado ao
- *   `start()` do módulo 1.
+ * @param {number} [prefs.scrollLimiterMinutes] - Repassado ao
+ *   `start()` do módulo 1 como duração, em minutos, antes de pausar.
  * @param {boolean} prefs.chronoFeed - Liga/desliga o módulo 2.
  * @param {boolean} prefs.followOnlyFilter - Liga/desliga o módulo 3.
- * @param {boolean} prefs.settingsReset - Liga/desliga o módulo 4.
+ * @param {boolean} prefs.autoplayReset - Liga/desliga o módulo 4a
+ *   (autoplay).
+ * @param {boolean} prefs.notificationsReset - Liga/desliga o módulo 4b
+ *   (notificações).
  * @returns {void}
  */
 function applyPrefs(prefs) {
   if (prefs.scrollLimiter) {
-    ReversaScrollLimiter.start(prefs.scrollLimiterBatchSize);
+    ReversaScrollLimiter.start(prefs.scrollLimiterMinutes);
   } else {
     ReversaScrollLimiter.stop();
   }
@@ -39,10 +42,16 @@ function applyPrefs(prefs) {
     ReversaFollowOnlyFilter.stop();
   }
 
-  if (prefs.settingsReset) {
-    ReversaSettingsReset.start();
+  if (prefs.autoplayReset) {
+    ReversaAutoplayReset.start();
   } else {
-    ReversaSettingsReset.stop();
+    ReversaAutoplayReset.stop();
+  }
+
+  if (prefs.notificationsReset) {
+    ReversaNotificationsReset.start();
+  } else {
+    ReversaNotificationsReset.stop();
   }
 }
 

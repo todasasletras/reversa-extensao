@@ -12,7 +12,9 @@ escrita assim, e o que ainda está pendente de validação.
 - [content-scripts/scroll-limiter.js](#content-scriptsscroll-limiterjs)
 - [content-scripts/chrono-feed.js](#content-scriptschrono-feedjs)
 - [content-scripts/follow-only-filter.js](#content-scriptsfollow-only-filterjs)
-- [content-scripts/settings-reset.js](#content-scriptssettings-resetjs)
+- [content-scripts/settings-toggle-factory.js](#content-scriptssettings-toggle-factoryjs)
+- [content-scripts/autoplay-reset.js](#content-scriptsautoplay-resetjs)
+- [content-scripts/notifications-reset.js](#content-scriptsnotifications-resetjs)
 - [content-scripts/index.js](#content-scriptsindexjs)
 - [content-scripts/overlay.css](#content-scriptsoverlaycss)
 - [popup/popup.html, popup.js, popup.css](#popup)
@@ -50,9 +52,11 @@ Script de fundo, roda uma vez quando a extensão é instalada/atualizada.
 ### `DEFAULT_PREFS` (objeto)
 Define o estado inicial de cada módulo. Hoje:
 - `scrollLimiter: true` — rolagem não infinita vem ativada por padrão.
-- `chronoFeed: false`, `followOnlyFilter: false`, `settingsReset: false`
-  — os demais módulos começam desativados, e o usuário ativa pelo popup.
-- `scrollLimiterBatchSize: 10` — quantos posts liberar antes de pausar.
+- `scrollLimiterMinutes: 5` — minutos de rolagem liberados antes de
+  pausar, configurável pelo slider no popup.
+- `chronoFeed: false`, `followOnlyFilter: false`, `autoplayReset: false`,
+  `notificationsReset: false` — os demais módulos começam desativados,
+  e o usuário ativa cada um pelo popup.
 
 **Decisão de produto pendente de validação com a equipe:** definir se
 faz sentido algum outro módulo vir ativado por padrão, ou se todos devem
@@ -113,42 +117,48 @@ navegador. Nenhum módulo funciona de verdade até isso ser feito.
 Módulo 1 — rolagem não infinita. Exposto globalmente como
 `window.ReversaScrollLimiter`, com interface pública `start()` / `stop()`.
 
+**Modelo baseado em tempo** (não em quantidade de posts): a partir do
+momento em que o módulo inicia (ou a rolagem é retomada), um
+`setTimeout` conta os minutos configurados pelo usuário via slider no
+popup. Ao esgotar o tempo, a rolagem é travada.
+
 ### Estado interno (fechado no escopo do IIFE)
-`observer`, `postsSeenSinceLastPause`, `batchSize`, `paused`.
+`timerId`, `minutes`, `paused`.
 
 ### `createOverlay()`
-Cria o elemento visual de pausa (card centralizado com mensagem e botão
-"Continuar rolando"), injetado no `document.body`. O clique no botão
-chama `resume()`.
+Cria o elemento visual de pausa (card centralizado com mensagem
+indicando quantos minutos já se passaram, e botão "Continuar
+rolando"), injetado no `document.body`. O clique no botão chama
+`resume()`.
+
+### `scheduleTimer()`
+Agenda (ou reagenda, cancelando o anterior) o disparo de
+`pauseScroll()` para daqui a `minutes` minutos. Chamada tanto por
+`start()` quanto por `resume()` — cada "Continuar rolando" reinicia a
+contagem do zero.
 
 ### `pauseScroll()`
 Trava a rolagem da página (`overflow: hidden` no `<html>`) e chama
 `createOverlay()`. Não faz nada se já estiver pausado (`paused` guard).
 
 ### `resume()`
-Reverte o travamento de scroll, zera o contador de posts, remove o
-overlay do DOM.
+Reverte o travamento de scroll, remove o overlay do DOM e chama
+`scheduleTimer()` para começar uma nova contagem de minutos.
 
-### `handleMutations(mutationsList)`
-Callback do `MutationObserver`. Para cada nó adicionado ao feed, checa
-se é (ou contém) um post (`article`), soma ao contador
-`postsSeenSinceLastPause`, e chama `pauseScroll()` ao atingir `batchSize`.
-Não faz nada se já estiver pausado — evita processar mutações enquanto o
-overlay está visível.
-
-### `start(configuredBatchSize)`
-Ponto de entrada do módulo. Localiza o container do feed
-(`REVERSA_CONFIG.feed.mainSelector`); se não encontrar (feed ainda não
-carregou, por ser SPA), tenta de novo em 1 segundo. Quando encontra,
-inicia o `MutationObserver` observando `childList` e `subtree`.
+### `start(configuredMinutes)`
+Ponto de entrada do módulo. Define `minutes` (se um valor for passado)
+e chama `scheduleTimer()`. Idempotente: não reagenda se já houver um
+timer ativo, para não reiniciar a contagem toda vez que `applyPrefs()`
+rodar de novo com o módulo já ligado.
 
 ### `stop()`
-Desconecta o observer e chama `resume()` para garantir que a página não
-fique travada se o módulo for desativado no meio de uma pausa.
+Cancela o temporizador ativo e libera a rolagem, garantindo que a
+página não fique travada se o módulo for desativado no meio de uma
+pausa.
 
-**Pendências:** validar `postSelector` (hoje `"article"`, um seletor
-semântico genérico que provavelmente precisa de refinamento); testar
-comportamento em telas menores (mobile) onde o layout do feed muda.
+**Pendências:** validar em teste real se o tempo configurado (padrão 5
+min, slider de 1 a 15 min no popup) tem uma boa faixa de valores;
+testar comportamento em telas menores (mobile).
 
 ---
 
@@ -226,37 +236,66 @@ não escondida.
 
 ---
 
-## content-scripts/settings-reset.js
+## content-scripts/settings-toggle-factory.js
 
-Módulo 4 — reversão de autoplay e notificações. Exposto como
-`window.ReversaSettingsReset`. O módulo mais dependente de páginas de
-configuração do Instagram, e por isso o mais sujeito a quebrar com
-mudanças de interface.
+Fábrica compartilhada pelos módulos 4a e 4b (`autoplay-reset.js` e
+`notifications-reset.js`). Os dois módulos têm exatamente a mesma
+lógica — "nesta página de configuração específica, desative todos os
+toggles ativos" — mudando só qual página cada um observa. Em vez de
+duplicar essa lógica em dois arquivos, este arquivo expõe
+`createSettingsToggleModule(urlFragment)`, que devolve um módulo
+independente (com seu próprio `start`/`stop` e seu próprio
+`MutationObserver`) para o fragmento de URL passado.
 
-### `isRelevantSettingsPage()`
-Checa se a URL atual (`location.pathname`) contém os fragmentos de
-notificações ou autoplay definidos em `REVERSA_CONFIG.settings`.
+### `createSettingsToggleModule(urlFragment)`
+Recebe um trecho de URL (ex.:
+`REVERSA_CONFIG.settings.autoplayUrlFragment`) e devolve um objeto
+`{ start, stop }`. Internamente:
+- `isRelevantSettingsPage()`: checa se `location.pathname` contém o
+  `urlFragment` recebido.
+- `disableActiveToggles()`: se a página for relevante, percorre todos
+  os elementos `[role="switch"]` e clica nos que estiverem com
+  `aria-checked="true"` (ativados), desativando-os.
+- `start()`: roda `disableActiveToggles()` imediatamente e observa
+  mudanças no `document.body` inteiro (não só no feed) — necessário
+  porque as páginas de configuração também são SPA.
+- `stop()`: desconecta o observer. Não reverte toggles já desativados
+  (decisão deliberada — desligar o módulo não deveria reativar algo
+  que o usuário já tinha desligado).
 
-### `disableActiveToggles()`
-Se a página for relevante, percorre todos os elementos
-`[role="switch"]` e clica nos que estiverem com `aria-checked="true"`
-(ou seja, ativados), desativando-os.
+Cada chamada a `createSettingsToggleModule()` cria um observer
+independente — dois módulos criados por ela podem rodar ao mesmo
+tempo sem interferir um no outro.
 
-### `start()`
-Roda `disableActiveToggles()` imediatamente e observa mudanças no
-`document.body` inteiro (não só no feed) — necessário porque as páginas
-de configuração também são SPA e podem trocar de conteúdo sem reload.
+---
 
-### `stop()`
-Desconecta o observer. Não reverte toggles já desativados (decisão
-deliberada — desligar o módulo não deveria reativar notificações que o
-usuário já tinha desligado).
+## content-scripts/autoplay-reset.js
 
-**Decisão de produto pendente:** o Instagram tem múltiplas categorias de
-notificação (curtidas, comentários, novos seguidores, mensagens etc.).
-Hoje o código desativa **todos** os toggles ativos na página — a equipe
-precisa decidir se esse é o comportamento desejado ou se deveria haver
-granularidade (ex.: manter notificações de mensagens diretas ativadas).
+Módulo 4a — reversão de autoplay. Exposto como
+`window.ReversaAutoplayReset`. Criado com uma linha, chamando
+`createSettingsToggleModule(REVERSA_CONFIG.settings.autoplayUrlFragment)`.
+Independente do módulo de notificações — pode ser ativado sozinho.
+
+**Pendência:** confirmar o caminho exato da página de autoplay do
+Instagram (`REVERSA_CONFIG.settings.autoplayUrlFragment`) — o
+Instagram reorganiza esse menu com frequência.
+
+---
+
+## content-scripts/notifications-reset.js
+
+Módulo 4b — reversão de notificações. Exposto como
+`window.ReversaNotificationsReset`. Criado da mesma forma que o
+módulo 4a, com
+`createSettingsToggleModule(REVERSA_CONFIG.settings.notificationsUrlFragment)`.
+Independente do módulo de autoplay — pode ser ativado sozinho.
+
+**Decisão de produto pendente:** o Instagram tem múltiplas categorias
+de notificação (curtidas, comentários, novos seguidores, mensagens
+etc.) possivelmente na mesma página. Hoje o código desativa **todos**
+os toggles ativos ali — a equipe precisa decidir se esse é o
+comportamento desejado ou se deveria haver granularidade (ex.: manter
+notificações de mensagens diretas ativadas).
 
 ---
 
@@ -266,7 +305,7 @@ Orquestrador. Único arquivo que lê o `browser.storage` e decide quais
 módulos ficam ativos — nenhum módulo se autoativa.
 
 ### `applyPrefs(prefs)`
-Para cada um dos 4 módulos, chama `.start()` ou `.stop()` conforme o
+Para cada um dos 5 módulos, chama `.start()` ou `.stop()` conforme o
 respectivo booleano em `prefs`. Módulos são completamente independentes
 entre si — qualquer combinação é válida.
 
@@ -298,24 +337,33 @@ diferente desse roxo provisório.
 ## popup/
 
 ### popup.html
-Estrutura do popup: cabeçalho com nome do projeto, 4 checkboxes (um por
-módulo, com `id` correspondente às chaves usadas em `prefs`), rodapé com
-crédito "Todas Labs".
+Estrutura do popup: cabeçalho com nome do projeto, 5 controles (um por
+módulo, com `id` correspondente às chaves usadas em `prefs`), rodapé
+com crédito "Todas Labs". O controle de rolagem não infinita tem, além
+do checkbox de ligar/desligar, um slider (`input[type="range"]`, 1 a 15
+minutos) para configurar a duração antes de pausar.
 
 ### popup.js
-- `TOGGLE_IDS`: lista dos 4 ids de checkbox, usada tanto para carregar
-  quanto para salvar preferências, evitando repetição de código.
-- `loadPrefs()`: lê `storage.local.prefs` e marca cada checkbox conforme
-  o valor salvo.
+- `TOGGLE_IDS`: lista dos 4 ids de checkbox booleanos (não inclui o
+  slider de minutos, tratado à parte), usada tanto para carregar quanto
+  para salvar preferências, evitando repetição de código.
+- `setSliderEnabled(enabled)`: habilita/desabilita visualmente o slider
+  de minutos conforme o checkbox de rolagem está ligado ou desligado.
+- `loadPrefs()`: lê `storage.local.prefs`, marca cada checkbox conforme
+  o valor salvo e ajusta o slider (valor e estado habilitado/desabilitado).
 - `savePref(id, value)`: mescla a mudança no objeto `prefs` existente e
   regrava no storage — importante usar merge (`{ ...prefs, [id]: value }`)
   em vez de sobrescrever tudo, para não perder preferências de outros
   módulos.
 - Um listener de `change` por checkbox, chamando `savePref`.
+- O slider tem dois listeners: `input` (atualiza o rótulo em tempo real
+  enquanto o usuário arrasta, sem gravar no storage a cada pixel) e
+  `change` (grava o valor final quando o usuário solta o slider).
 
 ### popup.css
 Estilo simples: cabeçalho roxo (mesma cor do overlay), lista de toggles
-com borda inferior separando cada linha.
+com borda inferior separando cada linha, e uma classe `.disabled` que
+esmaece visualmente o slider quando o módulo de rolagem está desligado.
 
 **Sem pendências conhecidas** — popup é funcional e não depende de
 seletores do Instagram.
@@ -334,9 +382,9 @@ submissão pública ou publicação na AMO.
 ## Resumo de pendências por prioridade
 
 1. **Validar todos os seletores em `config.js`** contra o Instagram real
-   — bloqueia o funcionamento de todos os 4 módulos.
+   — bloqueia o funcionamento de todos os 5 módulos.
 2. Testar `chrono-feed.js` (fluxo de clique no menu de alternância).
-3. Decidir escopo de `settings-reset.js` (desativar tudo vs.
+3. Decidir escopo de `notifications-reset.js` (desativar tudo vs.
    granularidade por categoria de notificação).
 4. Decidir se `follow-only-filter.js` precisa de heurística adicional
    além do texto "Sugestão para você", dado que esse rótulo pode não

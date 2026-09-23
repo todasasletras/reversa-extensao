@@ -1,24 +1,25 @@
 // content-scripts/scroll-limiter.js
 //
 // Módulo 1 — Rolagem não infinita.
-// Conta quantos posts novos aparecem no feed via MutationObserver e, a
-// cada N posts (configurável), bloqueia a rolagem e mostra um overlay
-// pedindo confirmação consciente para continuar.
+// Modelo baseado em TEMPO (não em quantidade de posts): a partir do
+// momento em que o feed é aberto (ou a rolagem é retomada), um
+// temporizador conta os minutos configurados pelo usuário no popup
+// (slider). Ao esgotar o tempo, a rolagem é travada e um overlay pede
+// confirmação consciente para continuar.
 
 /**
  * Módulo 1 — Rolagem não infinita, como IIFE que expõe uma interface
- * pública mínima (`start`/`stop`). Estado interno (observer, contador,
- * flag de pausa) fica fechado no escopo, inacessível de fora.
+ * pública mínima (`start`/`stop`). Estado interno (timer, minutos
+ * configurados, flag de pausa) fica fechado no escopo, inacessível de
+ * fora.
  *
  * @namespace ReversaScrollLimiter
  */
 const ReversaScrollLimiter = (() => {
-  /** @type {MutationObserver|null} Observer ativo do feed, ou null se parado. */
-  let observer = null;
-  /** @type {number} Posts novos vistos desde a última pausa. */
-  let postsSeenSinceLastPause = 0;
-  /** @type {number} Quantos posts liberar antes de pausar (configurável via start()). */
-  let batchSize = 10;
+  /** @type {number|null} ID do setTimeout ativo, ou null se parado. */
+  let timerId = null;
+  /** @type {number} Minutos de rolagem liberados antes de pausar (configurável via start()). */
+  let minutes = 5;
   /** @type {boolean} Se a rolagem está travada aguardando confirmação do usuário. */
   let paused = false;
 
@@ -32,7 +33,7 @@ const ReversaScrollLimiter = (() => {
     overlay.id = `${REVERSA_CONFIG.domPrefix}-scroll-overlay`;
     overlay.innerHTML = `
       <div class="${REVERSA_CONFIG.domPrefix}-overlay-card">
-        <p>Você já viu ${batchSize} posts nesta sessão de rolagem.</p>
+        <p>Você já rolou o feed por ${minutes} minuto${minutes > 1 ? "s" : ""}.</p>
         <button type="button" class="${REVERSA_CONFIG.domPrefix}-continue-btn">
           Continuar rolando
         </button>
@@ -42,6 +43,18 @@ const ReversaScrollLimiter = (() => {
       .querySelector(`.${REVERSA_CONFIG.domPrefix}-continue-btn`)
       .addEventListener("click", resume);
     document.body.appendChild(overlay);
+  }
+
+  /**
+   * Agenda (ou reagenda) o disparo de `pauseScroll()` para daqui a
+   * `minutes` minutos. Chamada tanto por `start()` quanto por
+   * `resume()`, para que cada "Continuar rolando" comece uma nova
+   * contagem completa.
+   * @returns {void}
+   */
+  function scheduleTimer() {
+    clearTimeout(timerId);
+    timerId = setTimeout(pauseScroll, minutes * 60 * 1000);
   }
 
   /**
@@ -57,81 +70,50 @@ const ReversaScrollLimiter = (() => {
   }
 
   /**
-   * Libera a rolagem, zera o contador de posts e remove o overlay do
-   * DOM. Chamada tanto pelo clique no botão quanto por `stop()`, para
-   * garantir que a página nunca fique travada com o módulo desativado.
+   * Libera a rolagem, remove o overlay do DOM e reinicia a contagem de
+   * tempo do zero. Chamada pelo clique no botão "Continuar rolando".
    * @returns {void}
    */
   function resume() {
     paused = false;
-    postsSeenSinceLastPause = 0;
     document.documentElement.style.overflow = "";
     const overlay = document.getElementById(
       `${REVERSA_CONFIG.domPrefix}-scroll-overlay`
     );
     if (overlay) overlay.remove();
+    scheduleTimer();
   }
 
   /**
-   * Callback do MutationObserver. Conta quantos posts novos foram
-   * adicionados ao feed e pausa a rolagem ao atingir `batchSize`.
-   * Não processa mutações enquanto já pausado.
-   * @param {MutationRecord[]} mutationsList - Lista de mutações do DOM
-   *   observadas desde a última chamada.
+   * Ponto de entrada do módulo: define os minutos configurados e agenda
+   * o temporizador inicial. Idempotente: não reagenda se já houver um
+   * timer ativo (evita reiniciar a contagem sempre que `applyPrefs` for
+   * chamado de novo com o módulo já ligado).
+   * @param {number} [configuredMinutes] - Minutos de rolagem liberados
+   *   antes de pausar. Se omitido, mantém o valor atual de `minutes`.
    * @returns {void}
    */
-  function handleMutations(mutationsList) {
-    if (paused) return;
-    let newPosts = 0;
-    for (const mutation of mutationsList) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType !== 1) return;
-        if (
-          node.matches?.(REVERSA_CONFIG.feed.postSelector) ||
-          node.querySelectorAll?.(REVERSA_CONFIG.feed.postSelector).length
-        ) {
-          newPosts += 1;
-        }
-      });
-    }
-    if (newPosts === 0) return;
-    postsSeenSinceLastPause += newPosts;
-    if (postsSeenSinceLastPause >= batchSize) {
-      pauseScroll();
-    }
+  function start(configuredMinutes) {
+    minutes = configuredMinutes || minutes;
+    if (timerId) return; // já rodando
+    scheduleTimer();
   }
 
   /**
-   * Ponto de entrada do módulo: localiza o container do feed e inicia
-   * o MutationObserver. Se o feed ainda não tiver carregado (comum em
-   * SPA logo após navegação), tenta novamente em 1 segundo.
-   * Idempotente: não faz nada se já houver um observer ativo.
-   * @param {number} [configuredBatchSize] - Quantos posts liberar antes
-   *   de pausar. Se omitido, mantém o valor atual de `batchSize`.
-   * @returns {void}
-   */
-  function start(configuredBatchSize) {
-    if (observer) return; // já rodando
-    batchSize = configuredBatchSize || batchSize;
-    const main = document.querySelector(REVERSA_CONFIG.feed.mainSelector);
-    if (!main) {
-      setTimeout(() => start(batchSize), 1000);
-      return;
-    }
-    observer = new MutationObserver(handleMutations);
-    observer.observe(main, { childList: true, subtree: true });
-  }
-
-  /**
-   * Desativa o módulo: desconecta o observer e chama `resume()` para
-   * garantir que a página não fique travada se estava pausada no
-   * momento da desativação.
+   * Desativa o módulo: cancela o temporizador ativo e libera a
+   * rolagem, garantindo que a página não fique travada se estava
+   * pausada no momento da desativação.
    * @returns {void}
    */
   function stop() {
-    observer?.disconnect();
-    observer = null;
-    resume();
+    clearTimeout(timerId);
+    timerId = null;
+    paused = false;
+    document.documentElement.style.overflow = "";
+    const overlay = document.getElementById(
+      `${REVERSA_CONFIG.domPrefix}-scroll-overlay`
+    );
+    if (overlay) overlay.remove();
   }
 
   return { start, stop };

@@ -14,21 +14,25 @@
  *
  * @property {boolean} scrollLimiter - Módulo 1: rolagem não infinita.
  *   Vem ativado por padrão.
+ * @property {number} scrollLimiterMinutes - Quantos minutos de rolagem
+ *   contínua o módulo 1 libera antes de pausar e pedir confirmação
+ *   (padrão: 5). Configurável pelo slider no popup.
  * @property {boolean} chronoFeed - Módulo 2: feed cronológico.
  *   Desativado por padrão; usuário ativa pelo popup.
  * @property {boolean} followOnlyFilter - Módulo 3: mostrar apenas quem
  *   você segue. Desativado por padrão.
- * @property {boolean} settingsReset - Módulo 4: reversão de autoplay e
+ * @property {boolean} autoplayReset - Módulo 4a: reversão de autoplay.
+ *   Desativado por padrão.
+ * @property {boolean} notificationsReset - Módulo 4b: reversão de
  *   notificações. Desativado por padrão.
- * @property {number} scrollLimiterBatchSize - Quantos posts o módulo 1
- *   libera antes de pausar a rolagem e pedir confirmação (padrão: 10).
  */
 const DEFAULT_PREFS = {
   scrollLimiter: true,
+  scrollLimiterMinutes: 5,
   chronoFeed: false,
   followOnlyFilter: false,
-  settingsReset: false,
-  scrollLimiterBatchSize: 10,
+  autoplayReset: false,
+  notificationsReset: false,
 };
 
 /**

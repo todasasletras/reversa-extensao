@@ -33,7 +33,7 @@
  *   como fallback mais robusto que depender de classes CSS.
  *
  * @property {Object} settings - Identificação das páginas de
- *   configuração relevantes para settings-reset.js.
+ *   configuração relevantes para autoplay-reset.js e notifications-reset.js.
  * @property {string} settings.notificationsUrlFragment - Trecho de URL
  *   que identifica a página de configurações de notificações.
  * @property {string} settings.autoplayUrlFragment - Trecho de URL que

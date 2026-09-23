@@ -8,14 +8,28 @@
   <body>
     <header>
       <h1>Reversa</h1>
-      <p>Configurações padrão a seu favor, no Instagram.</p>
+      <p>Configure como você quer ver o Instagram.</p>
     </header>
 
     <main>
-      <label class="toggle-row">
-        <span>Rolagem não infinita</span>
-        <input type="checkbox" id="scrollLimiter" />
-      </label>
+      <div class="setting-block">
+        <label class="toggle-row">
+          <span>Rolagem não infinita</span>
+          <input type="checkbox" id="scrollLimiter" />
+        </label>
+        <div class="slider-row" id="scrollLimiterSliderRow">
+          <input
+            type="range"
+            id="scrollLimiterMinutes"
+            min="1"
+            max="15"
+            step="1"
+          />
+          <span id="scrollLimiterMinutesValue" class="slider-value"
+            >5 min</span
+          >
+        </div>
+      </div>
 
       <label class="toggle-row">
         <span>Feed cronológico</span>
@@ -28,8 +42,13 @@
       </label>
 
       <label class="toggle-row">
-        <span>Desativar autoplay e notificações</span>
-        <input type="checkbox" id="settingsReset" />
+        <span>Autoplay</span>
+        <input type="checkbox" id="autoplayReset" />
+      </label>
+
+      <label class="toggle-row">
+        <span>Notificações</span>
+        <input type="checkbox" id="notificationsReset" />
       </label>
     </main>
 

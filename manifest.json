@@ -21,7 +21,9 @@
         "content-scripts/scroll-limiter.js",
         "content-scripts/chrono-feed.js",
         "content-scripts/follow-only-filter.js",
-        "content-scripts/settings-reset.js",
+        "content-scripts/settings-toggle-factory.js",
+        "content-scripts/autoplay-reset.js",
+        "content-scripts/notifications-reset.js",
         "content-scripts/index.js"
       ],
       "css": ["content-scripts/overlay.css"],
