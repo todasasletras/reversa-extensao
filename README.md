@@ -21,15 +21,17 @@ extensao-privacidade/
 ├── manifest.json              # Manifest V2, compatível com Firefox Android
 ├── background.js              # inicializa preferências padrão no storage
 ├── content-scripts/
-│   ├── config.js               # TODOS os seletores DOM, centralizados aqui
-│   ├── scroll-limiter.js        # Módulo 1: rolagem não infinita
-│   ├── chrono-feed.js           # Módulo 2: feed cronológico
-│   ├── follow-only-filter.js    # Módulo 3: só quem você segue
-│   ├── settings-reset.js        # Módulo 4: autoplay/notificações
-│   ├── overlay.css              # estilo do overlay de pausa de rolagem
-│   └── index.js                 # orquestrador: liga/desliga módulos por preferência
+│   ├── config.js                    # TODOS os seletores DOM, centralizados aqui
+│   ├── scroll-limiter.js             # Módulo 1: rolagem não infinita (baseado em tempo)
+│   ├── chrono-feed.js                # Módulo 2: feed cronológico
+│   ├── follow-only-filter.js         # Módulo 3: só quem você segue
+│   ├── settings-toggle-factory.js    # fábrica compartilhada pelos módulos 4a/4b
+│   ├── autoplay-reset.js             # Módulo 4a: autoplay
+│   ├── notifications-reset.js        # Módulo 4b: notificações
+│   ├── overlay.css                   # estilo do overlay de pausa de rolagem
+│   └── index.js                      # orquestrador: liga/desliga módulos por preferência
 ├── popup/
-│   ├── popup.html               # UI com 4 toggles (um por módulo)
+│   ├── popup.html               # UI com 5 controles (4 toggles + slider de minutos)
 │   ├── popup.js                 # sincroniza toggles com storage
 │   └── popup.css
 └── icons/                       # ícones placeholder (substituir por identidade final)
@@ -38,11 +40,15 @@ extensao-privacidade/
 ### Princípio de design: módulos independentes
 
 Cada módulo (`ReversaScrollLimiter`, `ReversaChronoFeed`,
-`ReversaFollowOnlyFilter`, `ReversaSettingsReset`) é um IIFE isolado, com
-uma interface pública mínima (`start()` / `stop()`). O arquivo
-`index.js` é o único lugar que decide, com base no `browser.storage`,
-quais módulos devem estar ativos — isso segue o critério de
-**customização** da proposta: qualquer combinação de módulos pode estar
+`ReversaFollowOnlyFilter`, `ReversaAutoplayReset`,
+`ReversaNotificationsReset`) expõe uma interface pública mínima
+(`start()` / `stop()`) — os dois últimos são criados por uma fábrica
+compartilhada (`settings-toggle-factory.js`), já que têm exatamente a
+mesma lógica interna, mudando só qual página do Instagram cada um
+observa. O arquivo `index.js` é o único lugar que decide, com base no
+`browser.storage`, quais módulos devem estar ativos — isso segue o
+critério de **customização** da proposta: qualquer combinação de
+módulos pode estar
 ligada ao mesmo tempo, sem que um dependa do outro.
 
 ### Por que `config.js` é separado
@@ -82,10 +88,11 @@ localizado — não é preciso caçar seletores espalhados pelo código.
 - [ ] Testar `chrono-feed.js` e `follow-only-filter.js` juntos e separados,
       confirmando que funcionam de forma independente como propõe a
       proposta.
-- [ ] Revisar `settings-reset.js` com as rotas reais de configurações do
-      Instagram (notificações têm múltiplas subcategorias — decidir escopo).
-- [ ] Ajustar `scrollLimiterBatchSize` (hoje 10 posts) com base em teste de
-      usuário informal da própria equipe.
+- [ ] Revisar `autoplay-reset.js` e `notifications-reset.js` com as rotas
+      reais de configurações do Instagram (notificações têm múltiplas
+      subcategorias — decidir escopo).
+- [ ] Ajustar `scrollLimiterMinutes` (padrão 5 min, slider de 1 a 15) com
+      base em teste de usuário informal da própria equipe.
 - [ ] Substituir os ícones placeholder em `icons/` pela identidade visual
       final do projeto.
 - [ ] Escrever `privacy_policy` simples para publicação na AMO (mesmo sem
@@ -95,4 +102,5 @@ localizado — não é preciso caçar seletores espalhados pelo código.
 
 ## Licença
 
-GPL-3.0
+Sugestão: GPL-3.0, mesma licença já usada em outros projetos de código
+aberto da Todas Labs (ex. extensão de detecção de dark patterns).
