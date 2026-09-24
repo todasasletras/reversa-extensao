@@ -13,7 +13,7 @@
  */
 const TOGGLE_IDS = [
   "scrollLimiter",
-  "chronoFeed",
+  "adRemover",
   "followOnlyFilter",
   "autoplayReset",
   "notificationsReset",

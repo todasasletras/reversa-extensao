@@ -15,7 +15,7 @@
  * @param {boolean} prefs.scrollLimiter - Liga/desliga o módulo 1.
  * @param {number} [prefs.scrollLimiterMinutes] - Repassado ao
  *   `start()` do módulo 1 como duração, em minutos, antes de pausar.
- * @param {boolean} prefs.chronoFeed - Liga/desliga o módulo 2.
+ * @param {boolean} prefs.adRemover - Liga/desliga o módulo 2.
  * @param {boolean} prefs.followOnlyFilter - Liga/desliga o módulo 3.
  * @param {boolean} prefs.autoplayReset - Liga/desliga o módulo 4a
  *   (autoplay).
@@ -30,10 +30,10 @@ function applyPrefs(prefs) {
     ReversaScrollLimiter.stop();
   }
 
-  if (prefs.chronoFeed) {
-    ReversaChronoFeed.start();
+  if (prefs.adRemover) {
+    ReversaAdRemover.start();
   } else {
-    ReversaChronoFeed.stop();
+    ReversaAdRemover.stop();
   }
 
   if (prefs.followOnlyFilter) {

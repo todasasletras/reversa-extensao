@@ -17,7 +17,7 @@
  * @property {number} scrollLimiterMinutes - Quantos minutos de rolagem
  *   contínua o módulo 1 libera antes de pausar e pedir confirmação
  *   (padrão: 5). Configurável pelo slider no popup.
- * @property {boolean} chronoFeed - Módulo 2: feed cronológico.
+ * @property {boolean} adRemover - Módulo 2: feed cronológico.
  *   Desativado por padrão; usuário ativa pelo popup.
  * @property {boolean} followOnlyFilter - Módulo 3: mostrar apenas quem
  *   você segue. Desativado por padrão.
@@ -29,7 +29,7 @@
 const DEFAULT_PREFS = {
   scrollLimiter: true,
   scrollLimiterMinutes: 5,
-  chronoFeed: false,
+  adRemover: false,
   followOnlyFilter: false,
   autoplayReset: false,
   notificationsReset: false,

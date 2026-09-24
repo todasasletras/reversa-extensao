@@ -19,7 +19,7 @@
       "js": [
         "content-scripts/config.js",
         "content-scripts/scroll-limiter.js",
-        "content-scripts/chrono-feed.js",
+        "content-scripts/ad-remover.js",
         "content-scripts/follow-only-filter.js",
         "content-scripts/settings-toggle-factory.js",
         "content-scripts/autoplay-reset.js",

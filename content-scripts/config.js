@@ -25,11 +25,11 @@
  *   individual dentro do feed (hoje `"article"`, tag semântica).
  *
  * @property {Object} feedSwitcher - Seletores do menu que alterna entre
- *   feed algorítmico e feed "Seguindo" (usado por chrono-feed.js).
+ *   feed algorítmico e feed algorítmico sem anúncios (usado por ad-remover.js).
  * @property {string} feedSwitcher.triggerSelector - Seletor do botão/
  *   ícone que abre esse menu. NÃO VALIDADO contra o DOM real ainda.
- * @property {string[]} feedSwitcher.followingOptionText - Textos
- *   (PT/EN) usados para localizar a opção "Seguindo" dentro do menu,
+ * @property {string[]} feedSwitcher.postOptionText - Textos
+ *   (PT/EN) usados para localizar a opção "Patrocinado/Ad" dentro do menu,
  *   como fallback mais robusto que depender de classes CSS.
  *
  * @property {Object} settings - Identificação das páginas de
@@ -55,7 +55,7 @@ const REVERSA_CONFIG = {
 
   feedSwitcher: {
     triggerSelector: '[aria-label*="Feed" i], svg[aria-label*="star" i]',
-    followingOptionText: ["Seguindo", "Following"],
+    postOptionText: ["Patrocinado", "Sponsored", "Ad"],
   },
 
   settings: {

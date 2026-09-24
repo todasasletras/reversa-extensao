@@ -10,7 +10,7 @@ escrita assim, e o que ainda está pendente de validação.
 - [background.js](#backgroundjs)
 - [content-scripts/config.js](#content-scriptsconfigjs)
 - [content-scripts/scroll-limiter.js](#content-scriptsscroll-limiterjs)
-- [content-scripts/chrono-feed.js](#content-scriptschrono-feedjs)
+- [content-scripts/ad-remover.js](#content-scriptsad-removerjs)
 - [content-scripts/follow-only-filter.js](#content-scriptsfollow-only-filterjs)
 - [content-scripts/settings-toggle-factory.js](#content-scriptssettings-toggle-factoryjs)
 - [content-scripts/autoplay-reset.js](#content-scriptsautoplay-resetjs)
@@ -54,7 +54,7 @@ Define o estado inicial de cada módulo. Hoje:
 - `scrollLimiter: true` — rolagem não infinita vem ativada por padrão.
 - `scrollLimiterMinutes: 5` — minutos de rolagem liberados antes de
   pausar, configurável pelo slider no popup.
-- `chronoFeed: false`, `followOnlyFilter: false`, `autoplayReset: false`,
+- `adRemover: false`, `followOnlyFilter: false`, `autoplayReset: false`,
   `notificationsReset: false` — os demais módulos começam desativados,
   e o usuário ativa cada um pelo popup.
 
@@ -89,7 +89,7 @@ CSS geradas automaticamente que mudam a cada deploy da plataforma.
 ### `REVERSA_CONFIG.feedSwitcher`
 - `triggerSelector`: seletor do botão que abre o menu de alternância de
   feed (ícone de estrela). **Não validado contra o DOM real ainda.**
-- `followingOptionText`: texto usado para localizar a opção "Seguindo"
+- `postOptionText`: texto usado para localizar a opção "Seguindo"
   dentro do menu, como estratégia de fallback mais robusta que depender
   só de classes CSS.
 
@@ -162,9 +162,9 @@ testar comportamento em telas menores (mobile).
 
 ---
 
-## content-scripts/chrono-feed.js
+## content-scripts/ad-remover.js
 
-Módulo 2 — feed cronológico. Exposto como `window.ReversaChronoFeed`.
+Módulo 2 — feed cronológico. Exposto como `window.ReversaAdRemover`.
 
 **Decisão de arquitetura:** em vez de reordenar o DOM manualmente (caro e
 frágil), o módulo automatiza o clique na opção nativa "Seguindo" que o
@@ -174,7 +174,7 @@ padrão a cada nova sessão, então a extensão repete esse clique.
 ### `findFollowingOption()`
 Varre `div`, `span`, `a` da página procurando um elemento cujo texto
 visível corresponda exatamente (case-insensitive) a "Seguindo" ou
-"Following" (`REVERSA_CONFIG.feedSwitcher.followingOptionText`).
+"Following" (`REVERSA_CONFIG.feedSwitcher.postOptionText`).
 
 ### `trySwitchToFollowing()`
 1. Clica no `trigger` (botão que abre o menu de alternância de feed).
@@ -383,7 +383,7 @@ submissão pública ou publicação na AMO.
 
 1. **Validar todos os seletores em `config.js`** contra o Instagram real
    — bloqueia o funcionamento de todos os 5 módulos.
-2. Testar `chrono-feed.js` (fluxo de clique no menu de alternância).
+2. Testar `ad-remover.js` (fluxo de clique no menu de alternância).
 3. Decidir escopo de `notifications-reset.js` (desativar tudo vs.
    granularidade por categoria de notificação).
 4. Decidir se `follow-only-filter.js` precisa de heurística adicional

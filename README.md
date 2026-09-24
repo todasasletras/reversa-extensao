@@ -23,7 +23,7 @@ extensao-privacidade/
 ├── content-scripts/
 │   ├── config.js                    # TODOS os seletores DOM, centralizados aqui
 │   ├── scroll-limiter.js             # Módulo 1: rolagem não infinita (baseado em tempo)
-│   ├── chrono-feed.js                # Módulo 2: feed cronológico
+│   ├── ad-remover.js                # Módulo 2: feed cronológico
 │   ├── follow-only-filter.js         # Módulo 3: só quem você segue
 │   ├── settings-toggle-factory.js    # fábrica compartilhada pelos módulos 4a/4b
 │   ├── autoplay-reset.js             # Módulo 4a: autoplay
@@ -39,7 +39,7 @@ extensao-privacidade/
 
 ### Princípio de design: módulos independentes
 
-Cada módulo (`ReversaScrollLimiter`, `ReversaChronoFeed`,
+Cada módulo (`ReversaScrollLimiter`, `ReversaAdRemover`,
 `ReversaFollowOnlyFilter`, `ReversaAutoplayReset`,
 `ReversaNotificationsReset`) expõe uma interface pública mínima
 (`start()` / `stop()`) — os dois últimos são criados por uma fábrica
@@ -85,7 +85,7 @@ localizado — não é preciso caçar seletores espalhados pelo código.
 
 - [ ] **Validar seletores reais** em `content-scripts/config.js` inspecionando
       o Instagram ao vivo (prioridade #1 antes de qualquer outro ajuste).
-- [ ] Testar `chrono-feed.js` e `follow-only-filter.js` juntos e separados,
+- [ ] Testar `ad-remover.js` e `follow-only-filter.js` juntos e separados,
       confirmando que funcionam de forma independente como propõe a
       proposta.
 - [ ] Revisar `autoplay-reset.js` e `notifications-reset.js` com as rotas
