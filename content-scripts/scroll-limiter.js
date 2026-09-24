@@ -31,17 +31,22 @@ const ReversaScrollLimiter = (() => {
   function createOverlay() {
     const overlay = document.createElement("div");
     overlay.id = `${REVERSA_CONFIG.domPrefix}-scroll-overlay`;
-    overlay.innerHTML = `
-      <div class="${REVERSA_CONFIG.domPrefix}-overlay-card">
-        <p>Você já rolou o feed por ${minutes} minuto${minutes > 1 ? "s" : ""}.</p>
-        <button type="button" class="${REVERSA_CONFIG.domPrefix}-continue-btn">
-          Continuar rolando
-        </button>
-      </div>
-    `;
-    overlay
-      .querySelector(`.${REVERSA_CONFIG.domPrefix}-continue-btn`)
-      .addEventListener("click", resume);
+    // Montado via DOM (e não innerHTML) para não interpretar valores
+    // dinâmicos como HTML — exigência do web-ext lint / revisão da AMO.
+    const card = document.createElement("div");
+    card.className = `${REVERSA_CONFIG.domPrefix}-overlay-card`;
+
+    const message = document.createElement("p");
+    message.textContent = `Você já viu ${batchSize} posts nesta sessão de rolagem.`;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `${REVERSA_CONFIG.domPrefix}-continue-btn`;
+    button.textContent = "Continuar rolando";
+    button.addEventListener("click", resume);
+
+    card.append(message, button);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
   }
 
