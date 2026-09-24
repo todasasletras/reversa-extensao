@@ -18,9 +18,10 @@ const ReversaAdRemover = (() => {
    */
   function findSponsoredOption() {
     const { postOptionText } = REVERSA_CONFIG.feedSwitcher;
-    const candidates = Array.from(document.querySelectorAll("div, span, a"));
+    const posts = Array.from(document.querySelectorAll("article"));
+    const candidates = posts.flatMap((el) => Array.from(el.querySelectorAll("span")));
     console.log("candidates", candidates);
-    return candidates.find((el) =>
+    return posts.find((el) =>
       postOptionText.some(
         (text) => el.textContent?.trim().toLowerCase() === text.toLowerCase()
       )
