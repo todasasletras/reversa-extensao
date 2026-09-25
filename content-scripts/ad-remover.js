@@ -12,12 +12,12 @@ const ReversaAdRemover = (() => {
   /**
    * Procura, entre `div`, `span` e `a` da página, o elemento cujo texto
    * visível corresponde exatamente (case-insensitive) a um dos textos
-   * em `REVERSA_CONFIG.feedSwitcher.postOptionText` (ex.:
+   * em `REVERSA_CONFIG.feedSwitcher.sponsoredPostText` (ex.:
    * "Patrocinado" / "Sponsored" / "Ad").
    * @returns {Element|undefined} O elemento encontrado, ou undefined.
    */
   function findSponsoredOption() {
-    const TERMS = new Set(REVERSA_CONFIG.feedSwitcher.postOptionText);
+    const TERMS = new Set(REVERSA_CONFIG.feedSwitcher.sponsoredPostText);
     const posts = Array.from(document.querySelectorAll("article"));
     const candidates = posts.flatMap((el) => Array.from(el.querySelectorAll("span")));
     console.log("candidates", candidates);
@@ -38,8 +38,9 @@ const ReversaAdRemover = (() => {
     );
 
     articles.forEach((article) => {
-      article.style.setProperty("display", "none", "important");
-      article.dataset.reversaHidden = "true";
+      //article.style.setProperty("visibility", "collapse", "important");
+      article.style.setProperty("background", "red", "important");
+      //article.dataset.reversaHidden = "true";
     });
 
     return articles.size;

@@ -55,7 +55,8 @@ const REVERSA_CONFIG = {
 
   feedSwitcher: {
     triggerSelector: '[aria-label*="Feed" i], svg[aria-label*="star" i]',
-    postOptionText: ["Patrocinado", "Sponsored", "Ad"],
+    sponsoredPostText: ["Patrocinado", "Sponsored", "Ad"],
+    recommendedPostText: ["Sugestões para você", "Recommended for you", "Recommended"],
   },
 
   settings: {
