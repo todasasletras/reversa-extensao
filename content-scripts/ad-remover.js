@@ -7,7 +7,7 @@
 const ReversaAdRemover = (() => {
   /** @type {number|null} ID do setInterval ativo, ou null se parado. */
   let intervalId = null;
-  console.log("ReversaAdRemover", this);
+  console.log("ReversaAdRemover");
 
   /**
    * Procura, entre `div`, `span` e `a` da página, o elemento cujo texto
@@ -17,33 +17,32 @@ const ReversaAdRemover = (() => {
    * @returns {Element|undefined} O elemento encontrado, ou undefined.
    */
   function findSponsoredOption() {
-    const { postOptionText } = REVERSA_CONFIG.feedSwitcher;
+    const TERMS = new Set(REVERSA_CONFIG.feedSwitcher.postOptionText);
     const posts = Array.from(document.querySelectorAll("article"));
     const candidates = posts.flatMap((el) => Array.from(el.querySelectorAll("span")));
     console.log("candidates", candidates);
-    return posts.find((el) =>
-      postOptionText.some(
-        (text) => el.textContent?.trim().toLowerCase() === text.toLowerCase()
-      )
+    const sponsored = candidates.filter((span) =>
+      TERMS.has(span.textContent.trim())
     );
+    console.log("sponsored", sponsored);
+    return sponsored;
   }
+  
+  function hideSponsoredPosts() {
+    const sponsoredSpans = findSponsoredOption(); // retorna o array do filter
 
-  /**
-   * Tenta alternar o feed para a visualização "Patrocinado" em dois
-   * passos: (1) clica no trigger que abre o menu de alternância de
-   * feed; (2) procura e clica na opção "Patrocinado" dentro do menu.
-   * Não lança erro se algum dos elementos não for encontrado — apenas
-   * não faz nada nesse ciclo (tentará de novo no próximo intervalo).
-   * @returns {void}
-   */
-  function tryRemoveSponsoreds() {
-    const trigger = document.querySelector(
-      REVERSA_CONFIG.feedSwitcher.triggerSelector
+    const articles = new Set(
+      sponsoredSpans
+        .map((span) => span.closest("article"))
+        .filter(Boolean) // descarta null, caso algum span não esteja num article
     );
-    trigger?.click();
 
-    const option = findSponsoredOption();
-    option?.click();
+    articles.forEach((article) => {
+      article.style.setProperty("display", "none", "important");
+      article.dataset.reversaHidden = "true";
+    });
+
+    return articles.size;
   }
 
   /**
@@ -58,7 +57,7 @@ const ReversaAdRemover = (() => {
   function start() {
     console.log("ReversaAdRemover.start");
     if (intervalId) return;
-    intervalId = setInterval(tryRemoveSponsoreds, 3000);
+    intervalId = setInterval(hideSponsoredPosts, 3000);
   }
 
   /**

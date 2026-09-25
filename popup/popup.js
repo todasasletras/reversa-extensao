@@ -55,6 +55,18 @@ async function loadPrefs() {
 }
 
 /**
+ * Recarrega a aba ativa, se ela for do Instagram, para que os content
+ * scripts reiniciem já com as preferências novas.
+ * @returns {Promise<void>}
+ */
+async function reloadActiveTab() {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+  if (!tab.url?.startsWith("https://www.instagram.com/")) return;
+  await browser.tabs.reload(tab.id);
+}
+
+/**
  * Salva o novo valor de uma preferência específica, fazendo merge com
  * as preferências existentes — importante para não sobrescrever/perder
  * o estado dos outros módulos.
@@ -71,8 +83,9 @@ async function savePref(id, value) {
 // Registra um listener de "change" por checkbox, salvando a mudança
 // assim que o usuário clica.
 TOGGLE_IDS.forEach((id) => {
-  document.getElementById(id).addEventListener("change", (event) => {
-    savePref(id, event.target.checked);
+  document.getElementById(id).addEventListener("change", async (event) => {
+    await savePref(id, event.target.checked);
+    await reloadActiveTab();
   });
 });
 

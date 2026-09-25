@@ -37,7 +37,8 @@ const ReversaScrollLimiter = (() => {
     card.className = `${REVERSA_CONFIG.domPrefix}-overlay-card`;
 
     const message = document.createElement("p");
-    message.textContent = `Você já viu ${batchSize} posts nesta sessão de rolagem.`;
+    const minuteLabel = minutes === 1 ? "minuto" : "minutos";
+    message.textContent = `Você já usou ${minutes} ${minuteLabel} nesta sessão de rolagem.`;
 
     const button = document.createElement("button");
     button.type = "button";
@@ -99,7 +100,9 @@ const ReversaScrollLimiter = (() => {
    * @returns {void}
    */
   function start(configuredMinutes) {
-    minutes = configuredMinutes || minutes;
+    if (Number.isFinite(configuredMinutes) && configuredMinutes > 0) {
+      minutes = configuredMinutes;
+    }
     if (timerId) return; // já rodando
     scheduleTimer();
   }
